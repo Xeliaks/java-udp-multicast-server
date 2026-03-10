@@ -106,6 +106,30 @@ Headless:
 java -Dserver.headless=true -jar target/udp-multicast-game-server-1.0.0-SNAPSHOT.jar
 ```
 
+## Datagram example (UDP send/receive)
+
+Simple UDP sender and receiver examples (no multicast):
+
+**Terminal 1 – start receiver** (listens on port 9099):
+
+```bash
+mvn exec:java -Dexec.mainClass="com.game.multicast.example.DatagramReceive"
+# Or with custom port:
+mvn exec:java -Dexec.mainClass="com.game.multicast.example.DatagramReceive" -Dexec.args="9099"
+```
+
+**Terminal 2 – send a message:**
+
+```bash
+mvn exec:java -Dexec.mainClass="com.game.multicast.example.DatagramSend" -Dexec.args="Hello"
+# Or message and port:
+mvn exec:java -Dexec.mainClass="com.game.multicast.example.DatagramSend" -Dexec.args="Hello 9099"
+```
+
+The receiver prints the received string and exits after one packet.
+
+---
+
 ## Interactive input format
 
 When running interactively, type one event per line:
