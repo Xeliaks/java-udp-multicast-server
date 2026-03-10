@@ -1,0 +1,22 @@
+# Systemd unit for UDP multicast game event server (EC2 / Linux).
+# Install:
+#   sudo cp multicast-game-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable multicast-game-server
+#   sudo systemctl start multicast-game-server
+# Logs: journalctl -u multicast-game-server -f
+
+[Unit]
+Description=UDP Multicast Game Event Bus Server
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/multicast-server
+ExecStart=/usr/bin/java -Dserver.headless=true -jar /home/ec2-user/multicast-server/udp-multicast-game-server-1.0.0-SNAPSHOT.jar 230.0.0.1 6789
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
