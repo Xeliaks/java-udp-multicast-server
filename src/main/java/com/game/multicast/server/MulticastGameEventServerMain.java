@@ -36,7 +36,7 @@ public class MulticastGameEventServerMain {
         boolean interactive = System.console() != null && !"true".equalsIgnoreCase(System.getProperty("server.headless"));
 
         if (interactive) {
-            System.out.println("Enter events (e.g. PLAYER_JOINED p1, SCORE_UPDATED p1 100) or 'quit' to exit.");
+            System.out.println("Enter events (e.g. PLAYER_JOINED p1, SCORE_UPDATED p1 100, GAME_PAUSED system) or 'quit' to exit.");
             try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
                 String line;
                 while ((line = in.readLine()) != null) {

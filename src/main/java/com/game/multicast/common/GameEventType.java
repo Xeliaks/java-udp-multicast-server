@@ -9,5 +9,7 @@ public enum GameEventType {
     PLAYER_FIRED,
     PLAYER_HIT,
     PLAYER_LEFT,
-    SCORE_UPDATED
+    SCORE_UPDATED,
+    GAME_STARTED,
+    GAME_PAUSED
 }

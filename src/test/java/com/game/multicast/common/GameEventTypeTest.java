@@ -11,12 +11,14 @@ class GameEventTypeTest {
     @Test
     void allArenaEventTypesPresent() {
         GameEventType[] values = GameEventType.values();
-        assertEquals(6, values.length);
+        assertEquals(8, values.length);
         assertNotNull(GameEventType.valueOf("PLAYER_JOINED"));
         assertNotNull(GameEventType.valueOf("PLAYER_MOVED"));
         assertNotNull(GameEventType.valueOf("PLAYER_FIRED"));
         assertNotNull(GameEventType.valueOf("PLAYER_HIT"));
         assertNotNull(GameEventType.valueOf("PLAYER_LEFT"));
         assertNotNull(GameEventType.valueOf("SCORE_UPDATED"));
+        assertNotNull(GameEventType.valueOf("GAME_PAUSED"));
+        assertNotNull(GameEventType.valueOf("GAME_STARTED"));
     }
 }
