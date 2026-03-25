@@ -28,7 +28,7 @@ public class DatagramReceive {
 
         try (DatagramSocket sock = new DatagramSocket(portNo)) {
             System.out.println("Listening on port " + portNo + " (UDP). Send a packet to see it here.");
-            // Sits and waits indefinitely for a packet
+            // Sits and waits indefinitely for a packet to arrive
             sock.receive(pack);
             // On receipt of packet, receive object is populated; output information
             System.out.println("Received " + new String(pack.getData(), pack.getOffset(), pack.getLength()));
