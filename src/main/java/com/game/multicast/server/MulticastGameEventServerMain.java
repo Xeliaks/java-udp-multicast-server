@@ -6,6 +6,7 @@ import com.game.multicast.common.GameEventType;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,22 +37,35 @@ public class MulticastGameEventServerMain {
         boolean interactive = System.console() != null && !"true".equalsIgnoreCase(System.getProperty("server.headless"));
 
         if (interactive) {
-            System.out.println("Enter events (e.g. PLAYER_JOINED p1, SCORE_UPDATED p1 100, GAME_PAUSED system) or 'quit' to exit.");
+            System.out.println("Enter events (e.g. GAME_STARTED system map=arena1, GAME_PAUSED system, PLAYER_JOINED p1, STATS for statistics) or 'quit' to exit.");
             try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
                 String line;
                 while ((line = in.readLine()) != null) {
                     line = line.trim();
-                    if (line.isEmpty()) continue;
+                    
+                    // Handle empty input
+                    if (line.isEmpty()) continue; 
+                    
                     if ("quit".equalsIgnoreCase(line) || "exit".equalsIgnoreCase(line)) {
                         break;
                     }
+
+                    if ("stats".equalsIgnoreCase(line)) {
+                        server.printStatistics();
+                        continue;
+                    }
+
                     try {
                         GameEvent event = parseServerCommand(line);
                         if (event != null) {
                             server.sendEvent(event);
                         }
+                    // Invalid input must produce a clear error message without crashing
+                    } catch (IllegalArgumentException e) {
+                        LOG.warning("Invalid input: " + e.getMessage());
+                    // Handle malformed payloads or unexpected errors during sending
                     } catch (Exception e) {
-                        LOG.log(Level.WARNING, "Failed to send event: " + line, e);
+                        LOG.log(Level.WARNING, "Unexpected error while processing or sending event: " + line, e);
                     }
                 }
             }
@@ -70,18 +84,29 @@ public class MulticastGameEventServerMain {
      * Simple parser for manual server commands: "type playerId [payload]"
      * Example: "score_updated p1 150"
      */
-    private static GameEvent parseServerCommand(String line) {
+    public static GameEvent parseServerCommand(String line) {
+       if (line != null) {
+            line = line.trim();
+        }
+        
         String[] parts = line.split("\\s+", 3);
-        if (parts.length < 2) return null;
+        
+        // Handles missing player ID or event type explicitly
+        if (parts.length < 2 || parts[0].isEmpty()) {
+            throw new IllegalArgumentException("Missing player ID or event type. Expected format: EVENT_TYPE PLAYER_ID [PAYLOAD]");
+        }
+        
         GameEventType type;
         try {
             type = GameEventType.valueOf(parts[0].toUpperCase());
         } catch (IllegalArgumentException e) {
-            LOG.warning("Unknown event type: " + parts[0]);
-            return null;
+            // Handles unknown types by throwing a detailed error showing valid options
+            throw new IllegalArgumentException("Unknown event type '" + parts[0] + "'. Available types: " + Arrays.toString(GameEventType.values()));
         }
+        
         String playerId = parts[1];
         String payload = parts.length > 2 ? parts[2] : "";
+        
         return new GameEvent(type, playerId, payload);
     }
 }

@@ -1,6 +1,7 @@
 package com.game.multicast.server;
 
 import com.game.multicast.common.GameEvent;
+import com.game.multicast.common.GameEventType;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -11,6 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * UDP multicast game event bus server.
@@ -34,6 +38,9 @@ public class MulticastGameEventServer {
     private MulticastSocket socket;
     private InetAddress groupAddress;
     private Thread receiverThread;
+    private final AtomicInteger totalEvents = new AtomicInteger(0);
+    private final ConcurrentHashMap<GameEventType, AtomicInteger> eventsPerType = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> eventsPerPlayer = new ConcurrentHashMap<>();
 
     public MulticastGameEventServer(String multicastGroup, int port, int maxPacketSize) {
         this(multicastGroup, port, maxPacketSize, null);
@@ -135,14 +142,25 @@ public class MulticastGameEventServer {
     /**
      * Handles one received datagram: decode as GameEvent and log (and optionally relay or apply game logic).
      */
-    private void handleReceivedPacket(DatagramPacket packet) {
+   private void handleReceivedPacket(DatagramPacket packet) {
         int length = packet.getLength();
         if (length == 0) {
             return;
         }
         try {
             GameEvent event = EventCodec.decode(packet.getData(), packet.getOffset(), length);
-            LOG.info("Received: " + event);
+            
+            /// Update metrics
+            totalEvents.incrementAndGet();
+            eventsPerType.computeIfAbsent(event.getType(), k -> new AtomicInteger(0)).incrementAndGet();
+            eventsPerPlayer.computeIfAbsent(event.getPlayerId(), k -> new AtomicInteger(0)).incrementAndGet();
+
+            String payloadStr = (event.getPayload() != null && !event.getPayload().isEmpty()) 
+                                ? " " + event.getPayload() 
+                                : "";
+            
+            LOG.info(event.getType() + " " + event.getPlayerId() + payloadStr);
+            
             if (receivedEventListener != null) {
                 receivedEventListener.accept(event);
             }
@@ -154,5 +172,44 @@ public class MulticastGameEventServer {
 
     public boolean isRunning() {
         return running.get();
+    }
+
+
+    /**
+     * Prints current event statistics to the logger.
+     */
+    public void printStatistics() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n=== Event Statistics ===\n");
+        sb.append("Total Events: ").append(totalEvents.get()).append("\n\n");
+
+        sb.append("Events per Type:\n");
+        if (eventsPerType.isEmpty()) sb.append("  (none)\n");
+        for (Map.Entry<GameEventType, AtomicInteger> entry : eventsPerType.entrySet()) {
+            sb.append("  ").append(entry.getKey()).append(": ").append(entry.getValue().get()).append("\n");
+        }
+
+        sb.append("\nEvents per Player:\n");
+        if (eventsPerPlayer.isEmpty()) sb.append("  (none)\n");
+        for (Map.Entry<String, AtomicInteger> entry : eventsPerPlayer.entrySet()) {
+            sb.append("  ").append(entry.getKey()).append(": ").append(entry.getValue().get()).append("\n");
+        }
+        sb.append("========================");
+
+        LOG.info(sb.toString());
+    }
+
+    int getTotalEventsCount() {
+        return totalEvents.get();
+    }
+
+    int getEventsCountByType(GameEventType type) {
+        AtomicInteger count = eventsPerType.get(type);
+        return count != null ? count.get() : 0;
+    }
+
+    int getEventsCountByPlayer(String playerId) {
+        AtomicInteger count = eventsPerPlayer.get(playerId);
+        return count != null ? count.get() : 0;
     }
 }
